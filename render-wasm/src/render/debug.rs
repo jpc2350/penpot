@@ -98,30 +98,25 @@ pub fn render_debug_viewbox_tiles(render_state: &mut RenderState) {
     paint.set_stroke_width(1.);
 
     let tile_size = tiles::get_tile_size(scale);
-    let tiles::TileRect(sx, sy, ex, ey) =
-        tiles::get_tiles_for_rect(render_state.viewbox.area, tile_size);
+    let tile_rect = tiles::get_tiles_for_rect(render_state.viewbox.area, tile_size);
+    let tiles::TileRect(sx, sy, ex, ey) = tile_rect;
+
     let str_rect = format!("{} {} {} {}", sx, sy, ex, ey);
 
     let debug_font = render_state.fonts.debug_font();
     canvas.draw_str(str_rect, skia::Point::new(100.0, 100.0), debug_font, &paint);
 
     let tile_size = tiles::get_tile_size(scale);
-    for y in sy..=ey {
-        for x in sx..=ex {
-            let rect = Rect::from_xywh(
-                x as f32 * tile_size,
-                y as f32 * tile_size,
-                tile_size,
-                tile_size,
-            );
-            let debug_rect = get_debug_rect(rect);
-            let p = skia::Point::new(debug_rect.x(), debug_rect.y() - 1.);
-            let str = format!("{}:{}", x, y);
-            let debug_font = render_state.fonts.debug_font();
-            paint.set_style(skia::PaintStyle::Fill);
-            canvas.draw_str(str, p, debug_font, &paint);
-            canvas.draw_rect(debug_rect, &paint);
-        }
+    for tile in tile_rect.iter(true) {
+        let tiles::Tile(x, y) = tile;
+        let rect = tile.get_rect_with_size(tile_size);
+        let debug_rect = get_debug_rect(rect);
+        let p = skia::Point::new(debug_rect.x(), debug_rect.y() - 1.);
+        let str = format!("{}:{}", x, y);
+        let debug_font = render_state.fonts.debug_font();
+        paint.set_style(skia::PaintStyle::Fill);
+        canvas.draw_str(str, p, debug_font, &paint);
+        canvas.draw_rect(debug_rect, &paint);
     }
 }
 

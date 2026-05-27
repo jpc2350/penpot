@@ -3,8 +3,8 @@ use crate::{
     error::Result,
     math::Rect,
     shapes::{
-        calculate_text_layout_data, set_paint_fill, ParagraphBuilderGroup,
-        Stroke, StrokeKind, TextContent,
+        calculate_text_layout_data, set_paint_fill, ParagraphBuilderGroup, Stroke, StrokeKind,
+        TextContent,
     },
     utils::{get_fallback_fonts, get_font_collection},
 };

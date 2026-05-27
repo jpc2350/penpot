@@ -1273,11 +1273,7 @@ impl Surfaces {
         self.tile_atlas.image_snapshot_with_bounds(rect)
     }
 
-    pub fn draw_cached_tile_into_backbuffer(
-        &mut self,
-        tile: Tile,
-        rect: &Rect,
-    ) {
+    pub fn draw_cached_tile_into_backbuffer(&mut self, tile: Tile, rect: &Rect) {
         if let Some(image) = self.get_tile_image_from_tile_atlas(tile) {
             // let rect = tile.get_rect_with_offset(&offset);
             let backbuffer_canvas = self.backbuffer.canvas();

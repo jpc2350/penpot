@@ -22,6 +22,16 @@ impl Tile {
     }
 
     #[inline(always)]
+    pub fn get_rect_with_size(&self, tile_size: f32) -> skia::Rect {
+        skia::Rect::from_xywh(
+            self.0 as f32 * tile_size,
+            self.1 as f32 * tile_size,
+            tile_size,
+            tile_size,
+        )
+    }
+
+    #[inline(always)]
     pub fn get_rect_with_offset(&self, offset: &skia::Point) -> skia::Rect {
         skia::Rect::from_xywh(
             self.0 as f32 * TILE_SIZE - offset.x,
@@ -137,6 +147,49 @@ impl TileRect {
             && tile.y() >= self.top()
             && tile.x() <= self.right()
             && tile.y() <= self.bottom()
+    }
+
+    pub fn iter(self, inclusive: bool) -> TileRectIter {
+        TileRectIter::new(self, inclusive)
+    }
+}
+
+#[allow(dead_code)]
+pub struct TileRectIter {
+    rect: TileRect,
+    inclusive: bool,
+    index: i32,
+    total: i32,
+}
+
+impl TileRectIter {
+    fn new(rect: TileRect, inclusive: bool) -> Self {
+        let width = rect.width() + if inclusive { 1 } else { 0 };
+        let height = rect.height() + if inclusive { 1 } else { 0 };
+        Self {
+            rect,
+            inclusive,
+            index: 0,
+            total: width * height,
+        }
+    }
+}
+
+impl Iterator for TileRectIter {
+    type Item = Tile;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.total {
+            return None;
+        }
+
+        let width = self.rect.width() + if self.inclusive { 1 } else { 0 };
+
+        let x = self.rect.left() + self.index % width;
+        let y = self.rect.top() + self.index / width;
+
+        self.index += 1;
+
+        Some(Tile::from(x, y))
     }
 }
 

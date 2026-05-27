@@ -1976,8 +1976,7 @@ impl RenderState {
                         let tile = tiles::Tile::from(tx, ty);
                         if self.surfaces.has_cached_tile_surface(tile) {
                             let rect = tile.get_rect_with_offset(&offset);
-                            self.surfaces
-                                .draw_cached_tile_into_backbuffer(tile, &rect);
+                            self.surfaces.draw_cached_tile_into_backbuffer(tile, &rect);
                         }
                     }
                 }
@@ -3530,7 +3529,7 @@ impl RenderState {
         shape: &Shape,
         tree: ShapesPoolRef,
     ) -> HashSet<tiles::Tile> {
-        let TileRect(rsx, rsy, rex, rey) = self.get_tiles_for_shape(shape, tree);
+        let tile_rect = self.get_tiles_for_shape(shape, tree);
 
         // Collect old tiles to avoid borrow conflict with remove_shape_at
         let old_tiles: Vec<_> = self
@@ -3568,7 +3567,7 @@ impl RenderState {
         }
 
         // Then, add the shape to the new tiles
-        for tile in (rsx..=rex).flat_map(|x| (rsy..=rey).map(move |y| tiles::Tile::from(x, y))) {
+        for tile in tile_rect.iter(true) {
             self.tiles.add_shape_at(tile, shape.id);
             result.insert(tile);
         }
@@ -3597,16 +3596,13 @@ impl RenderState {
         shape: &Shape,
         tree: ShapesPoolRef,
     ) -> Vec<tiles::Tile> {
-        let TileRect(rsx, rsy, rex, rey) = self.get_tiles_for_shape(shape, tree);
-
+        let tile_rect = self.get_tiles_for_shape(shape, tree);
         let old_tiles: HashSet<tiles::Tile> = self
             .tiles
             .get_tiles_of(shape.id)
             .map_or(HashSet::new(), |tiles| tiles.iter().copied().collect());
 
-        let new_tiles: HashSet<tiles::Tile> = (rsx..=rex)
-            .flat_map(|x| (rsy..=rey).map(move |y| tiles::Tile::from(x, y)))
-            .collect();
+        let new_tiles: HashSet<tiles::Tile> = tile_rect.iter(true).collect();
 
         // Tiles where shape is being removed from index (left interest area)
         let removed: Vec<_> = old_tiles.difference(&new_tiles).copied().collect();
@@ -3631,18 +3627,16 @@ impl RenderState {
     }
 
     /*
-     * Add the tiles forthe shape to the index.
+     * Add the tiles for the shape to the index.
      * returns the tiles that have been updated
      */
     pub fn add_shape_tiles(&mut self, shape: &Shape, tree: ShapesPoolRef) -> Vec<tiles::Tile> {
-        let TileRect(rsx, rsy, rex, rey) = self.get_tiles_for_shape(shape, tree);
-        let tiles: Vec<_> = (rsx..=rex)
-            .flat_map(|x| (rsy..=rey).map(move |y| tiles::Tile::from(x, y)))
-            .collect();
-
+        performance::begin_measure!("add_shape_tiles");
+        let tiles: Vec<tiles::Tile> = self.get_tiles_for_shape(shape, tree).iter(true).collect();
         for tile in tiles.iter() {
             self.tiles.add_shape_at(*tile, shape.id);
         }
+        performance::end_measure!("add_shape_tiles");
         tiles
     }
 
@@ -3655,8 +3649,9 @@ impl RenderState {
     /// survive so that fast-mode renders during pan still show shadows/blur.
     pub fn rebuild_tile_index(&mut self, tree: ShapesPoolRef) {
         let zoom_changed = self.zoom_changed();
-
-        let mut nodes = vec![Uuid::nil()];
+        performance::begin_measure!("rebuild_tile_index");
+        let mut nodes = Vec::<Uuid>::with_capacity(64);
+        nodes.push(Uuid::nil());
         while let Some(shape_id) = nodes.pop() {
             if let Some(shape) = tree.get(&shape_id) {
                 if shape_id != Uuid::nil() {
@@ -3673,6 +3668,7 @@ impl RenderState {
                 }
             }
         }
+        performance::end_measure!("rebuild_tile_index");
     }
 
     pub fn rebuild_tiles_shallow(&mut self, tree: ShapesPoolRef) {
