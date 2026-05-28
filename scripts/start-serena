@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -ex
+
+serena start-mcp-server --transport streamable-http --port 14281 --project penpot --context copilot-cli --host 0.0.0.0
